@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: float-operation-container
+  labels:
+    app: float-operation-container
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: float-operation-container
+  template:
+    metadata:
+      labels:
+        app: float-operation-container
+    spec:
+      containers:
+      - name: float-operation
+        image: stav1212/float-operation:v1
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: float-operation-container-service
+spec:
+  selector:
+    app: float-operation-container
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: NodePort
+
