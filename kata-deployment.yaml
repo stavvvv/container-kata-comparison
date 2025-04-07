@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: float-operation-kata
+  labels:
+    app: float-operation-kata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: float-operation-kata
+  template:
+    metadata:
+      labels:
+        app: float-operation-kata
+    spec:
+      runtimeClassName: kata
+      containers:
+      - name: float-operation
+        image: stav1212/float-operation:v1
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: float-operation-kata-service
+spec:
+  selector:
+    app: float-operation-kata
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: NodePort
