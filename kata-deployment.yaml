@@ -14,7 +14,7 @@ spec:
       labels:
         app: float-operation-kata
     spec:
-      runtimeClassName: kata
+      runtimeClassName: kata-fc
       containers:
       - name: float-operation
         image: stav1212/float-operation:v1
