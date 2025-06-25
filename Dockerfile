@@ -1,4 +1,3 @@
-stavroula@interference:~/serverless-faas-workbench/azure/cpu-memory/image_processing$ cat Dockerfile
 FROM python:3.8-slim
 WORKDIR /app
 
