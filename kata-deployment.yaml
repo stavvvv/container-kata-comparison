@@ -17,27 +17,31 @@ spec:
       runtimeClassName: kata-fc
       containers:
       - name: image-processing
-        image: stav1212/image_processing:v4
+        image: stav1212/image_processing:v14
         ports:
         - containerPort: 8080
         resources:
           requests:
-            memory: "1Gi"
             cpu: "1000m"
+            memory: "512Mi"
           limits:
-            memory: "1536Mi"
-            cpu: "1500m"
+            cpu: "1000m"
+            memory: "512Mi"
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: image-processing-kata-service
+  labels:
+    app: image-processing-kata
 spec:
   selector:
     app: image-processing-kata
   ports:
-  - port: 80
+  - name: web
+    port: 80
     targetPort: 8080
+    nodePort: 30885
   type: NodePort
 
