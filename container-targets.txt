@@ -1,1 +1,2 @@
-GET http://147.102.13.62:30594?N=100000
+GET http://147.102.13.62:31397/?image_path=/app/images/sample.jpg
+
