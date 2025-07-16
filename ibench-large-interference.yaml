@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibench-large-interference
+  labels:
+    app: ibench-large-interference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ibench-large-interference
+  template:
+    metadata:
+      labels:
+        app: ibench-large-interference
+    spec:
+      containers:
+      - name: ibench-cpu
+        image: stav1212/ibench:latest
+        command: ["./cpu"]
+        args: ["7200"]
+        resources:
+          requests:
+            cpu: "1500m"     
+            memory: "256Mi"
+          limits:
+            cpu: "1500m"     
+            memory: "256Mi"  
