@@ -21,8 +21,8 @@ spec:
         args: ["7200"]
         resources:
           requests:
-            cpu: "1000m"   
+            cpu: "500m"   
             memory: "256Mi"
           limits:
             cpu: "1000m"     
-            memory: "256Mi"
+            memory: "512Mi" 
