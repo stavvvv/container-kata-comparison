@@ -1,3 +1,4 @@
-POST http://147.102.13.62:31397/
+POST http://147.102.13.62:31397/upload
 Content-Type: multipart/form-data; boundary=boundary
 @body.txt
+
