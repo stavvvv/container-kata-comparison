@@ -16,7 +16,8 @@ def metrics_endpoint():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 @app.route('/', methods=['GET'])
-@metrics.histogram('image_processing_duration_seconds', 'Image processing duration')
+@metrics.do_not_track()
+@metrics.histogram('image_processing_duration_seconds', 'GET duration')
 def process_image():
     try:
         image_path = request.args.get('image_path', '/app/images/sample.jpg')
@@ -34,8 +35,8 @@ def process_image():
         print(error_msg)
         return error_msg, 500
 
-@app.route('/', methods=['POST'])
-@metrics.histogram('image_processing_post_duration_seconds', 'Image processing POST duration')
+@app.route('/upload', methods=['POST'])
+@metrics.histogram('image_processing_post_duration_seconds', 'POST duration')
 def process_image_post():
     try:
         if 'image' not in request.files:
@@ -69,3 +70,4 @@ def process_image_post():
 
 if __name__ == '__main__':  
     app.run(debug=True, host='0.0.0.0', port=8080)
+
