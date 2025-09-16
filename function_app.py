@@ -1,4 +1,4 @@
-import azure.functions as func
+mport azure.functions as func
 from azure.storage.blob import BlockBlobService, PublicAccess
 from PIL import Image, ImageFilter
 import logging
@@ -40,8 +40,7 @@ def rotate(image, file_name):
     path_list.append(path)
 
     return path_list
-
-
+                                                                                                                                                                      1,1           Top
 def filter(image, file_name):
     path_list = []
     path = TMP + "blur-" + file_name
@@ -79,18 +78,42 @@ def resize(image, file_name):
 
 
 def image_processing(file_name, image_path):
+
     path_list = []
-    start = time()
-    with Image.open(image_path) as image:
+
+    # Start total timer
+    total_start = time()
+
+    # Measure load time-file opening and parsing
+    load_start = time()
+    image = Image.open(image_path)
+    load_time = time() - load_start
+
+    # Log load time
+    logging.info(f"Image load time: {load_time:.4f}s")
+
+    try:
+        # Measure processing time 
+        process_start = time()
         path_list += flip(image, file_name)
         path_list += rotate(image, file_name)
         path_list += filter(image, file_name)
         path_list += gray_scale(image, file_name)
         path_list += resize(image, file_name)
 
-    latency = time() - start
+        processing_time = time() - process_start
 
-    return latency, path_list
+    finally:
+        image.close()
+
+    total_latency = time() - total_start
+
+    # Log all timings
+    logging.info(f"Processing breakdown - Load: {load_time:.4f}s, "
+                f"Processing: {processing_time:.4f}s, "
+                f"Total: {total_latency:.4f}s")
+
+    return total_latency, load_time, processing_time, path_list
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -109,10 +132,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     download_path = "/tmp/" + blob_name
     block_blob_service.get_blob_to_path(container_name, blob_name, download_path)
     logging.info("Downloading blob to " + download_path)
-    
-    latency, path_list = image_processing(blob_name, download_path)
+
+
+    total_latency, load_time, processing_time, path_list = image_processing(blob_name, download_path)
 
     for upload_path in path_list:
         block_blob_service.create_blob_from_path(container_name, upload_path.split("/")[2], upload_path)
 
-    return func.HttpResponse(str(latency))
+    # Return total latency 
+    return func.HttpResponse(str(total_latency))
+                                                                                                                                                                      144,1         Bot
+
+
