@@ -2,7 +2,7 @@ FROM python:3.8-slim
 WORKDIR /app
 
 # Copy the function code
-COPY __init__.py /app/function_app.py
+COPY function_app.py /app/function_app.py
 COPY app.py /app/app.py
 
 # Install system dependencies
