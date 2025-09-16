@@ -24,9 +24,22 @@ def process_image():
 
         file_name = os.path.basename(image_path)
 
-        latency, path_list = image_processing(file_name, image_path)
+        # Time result image_processing function 
+        total_latency, load_time, processing_time, path_list = image_processing(file_name, image_path)
 
-        return str(latency), 200, {'Content-Type': 'text/plain'}
+        # Return detailed timing information as JSON
+        response = {
+            'total_time': round(total_latency, 4),
+            'load_time': round(load_time, 4),
+            'processing_time': round(processing_time, 4),
+            'files_generated': len(path_list),
+            'breakdown': {
+                'load_percentage': round((load_time / total_latency) * 100, 1),
+                'processing_percentage': round((processing_time / total_latency) * 100, 1)
+            }
+        }
+
+        return jsonify(response), 200
 
     except Exception as e:
         error_msg = f"Error processing image: {str(e)}"
@@ -35,4 +48,3 @@ def process_image():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
-
