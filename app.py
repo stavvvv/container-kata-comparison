@@ -1,3 +1,4 @@
+#for the get requests
 from flask import Flask, request, jsonify, Response
 import os
 from function_app import image_processing
