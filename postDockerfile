@@ -1,0 +1,15 @@
+FROM python:3.8-slim
+
+WORKDIR /app
+
+# Copy only the Flask app
+COPY app.py /app/app.py
+
+# Install Python dependencies
+RUN pip install --no-cache-dir Pillow Flask prometheus-flask-exporter gunicorn
+
+# Expose port for HTTP trigger
+EXPOSE 8080
+
+# Run the Flask application with Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "2", "--timeout", "0", "--log-level", "debug", "app:app"]
