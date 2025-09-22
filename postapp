@@ -1,0 +1,162 @@
+#post 
+from flask import Flask, request, jsonify, Response
+import os
+from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Histogram
+from PIL import Image, ImageFilter
+import io  
+from time import time
+
+app = Flask(__name__)
+metrics = PrometheusMetrics(app)
+
+memory_load_histogram = Histogram('memory_load_duration_seconds', 'Time to load image from HTTP request into memory')
+image_parse_histogram = Histogram('image_parse_duration_seconds', 'Time to parse image with PIL from memory stream')
+processing_histogram = Histogram('image_processing_operations_duration_seconds', 'Time for image processing operations')
+request_age_histogram = Histogram('request_age_seconds', 'Age of request when processing starts')
+total_processing_histogram = Histogram('total_image_processing_duration_seconds', 'Total image processing time')
+
+# Memory-only processing functions
+def flip(image):
+    """Process image flips in memory, return list of PIL Image objects"""
+    results = []
+    
+    # Flip left-right
+    img = image.transpose(Image.FLIP_LEFT_RIGHT)
+    results.append(img.copy())
+    
+    # Flip top-bottom
+    img = image.transpose(Image.FLIP_TOP_BOTTOM)
+    results.append(img.copy())
+    
+    return results
+
+def rotate(image):
+    """Process image rotations in memory, return list of PIL Image objects"""
+    results = []
+    
+    # Rotate 90 degrees
+    img = image.transpose(Image.ROTATE_90)
+    results.append(img.copy())
+    
+    # Rotate 180 degrees
+    img = image.transpose(Image.ROTATE_180)
+    results.append(img.copy())
+    
+    # Rotate 270 degrees
+    img = image.transpose(Image.ROTATE_270)
+    results.append(img.copy())
+    
+    return results
+
+def filter(image):
+    """Apply image filters in memory, return list of PIL Image objects"""
+    results = []
+    
+    # Blur filter
+    img = image.filter(ImageFilter.BLUR)
+    results.append(img.copy())
+    
+    # Contour filter
+    img = image.filter(ImageFilter.CONTOUR)
+    results.append(img.copy())
+    
+    # Sharpen filter
+    img = image.filter(ImageFilter.SHARPEN)
+    results.append(img.copy())
+    
+    return results
+
+def gray_scale(image):
+    """Convert image to grayscale in memory, return PIL Image object"""
+    img = image.convert('L')
+    return [img.copy()]
+
+def resize(image):
+    """Resize image in memory, return PIL Image object"""
+    # Create a copy to avoid modifying the original
+    img = image.copy()
+    img.thumbnail((128, 128))
+    return [img]
+
+@app.route('/metrics')
+@metrics.do_not_track()
+def metrics_endpoint():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+@app.route('/', methods=['POST'])
+@metrics.histogram('image_processing_post_duration_seconds', 'Image processing POST duration')
+def process_image_post():
+    processed_images = []
+    try:
+        if 'image' not in request.files:
+            return {'error': 'Missing input image'}, 400
+        if 'timestamp' not in request.files:
+            return {'error': 'Missing timestamp'}, 400
+        
+        image_file = request.files['image']
+        request_start_timestamp = request.files['timestamp'].read().decode('utf-8')
+        request_timestamp = float(request_start_timestamp)
+        
+        if image_file.filename == '':
+            return {'error': 'No file selected'}, 400
+        
+        service_start_time = time()
+        request_age = service_start_time - request_timestamp
+        request_age_histogram.observe(request_age)
+        
+        memory_load_start = time()
+        image_bytes = image_file.read()
+        file_name = image_file.filename if image_file.filename else 'uploaded_image.jpg'
+        memory_load_time = time() - memory_load_start
+        memory_load_histogram.observe(memory_load_time)
+        
+        image_parse_start = time()
+        image_stream = io.BytesIO(image_bytes)
+        with Image.open(image_stream) as image:
+            image_parse_time = time() - image_parse_start
+            image_parse_histogram.observe(image_parse_time)
+            
+            processing_start = time()
+            # Process images in memory only - no disk I/O
+            processed_images.extend(flip(image))
+            processed_images.extend(rotate(image))
+            processed_images.extend(filter(image))
+            processed_images.extend(gray_scale(image))
+            processed_images.extend(resize(image))
+            
+            processing_time = time() - processing_start
+            processing_histogram.observe(processing_time)
+        
+        total_image_processing_time = image_parse_time + processing_time
+        total_processing_histogram.observe(total_image_processing_time)
+        
+        # Clean up processed images from memory
+        for img in processed_images:
+            img.close()
+        
+        response = {
+            'request_timestamp': request_timestamp,
+            'request_age_seconds': round(request_age, 4),
+            'memory_load_time': round(memory_load_time, 4),
+            'image_parse_time': round(image_parse_time, 4),
+            'processing_time': round(processing_time, 4),
+            'total_image_processing_time': round(total_image_processing_time, 4),
+            'images_processed': len(processed_images)
+        }
+        
+        return jsonify(response), 200
+            
+    except Exception as e:
+        # Clean up any processed images in case of error
+        for img in processed_images:
+            try:
+                img.close()
+            except:
+                pass
+        
+        error_msg = f"Error processing image: {str(e)}"
+        print(error_msg)
+        return error_msg, 500
+
+if __name__ == '__main__':
