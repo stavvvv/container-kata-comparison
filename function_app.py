@@ -1,4 +1,4 @@
-mport azure.functions as func
+import azure.functions as func
 from azure.storage.blob import BlockBlobService, PublicAccess
 from PIL import Image, ImageFilter
 import logging
